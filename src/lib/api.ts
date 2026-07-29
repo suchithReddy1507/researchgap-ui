@@ -180,3 +180,32 @@ export function exportGap(
     body: JSON.stringify({ format }),
   });
 }
+
+/** Renders already-generated gap-export content (the exact text already on
+ * screen, e.g. from exportGap) into a typeset PDF -- no regeneration, so
+ * what downloads always matches exactly what was displayed. Returns a Blob
+ * rather than JSON, so this can't reuse request<T>() (which always parses
+ * the response as JSON). */
+export async function exportGapPdf(
+  jobId: string,
+  gapIndex: number,
+  content: string,
+  format: GapExportFormat,
+  gapNumber: number,
+): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/jobs/${jobId}/gaps/${gapIndex}/export/pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, format, gap_number: gapNumber }),
+    });
+  } catch {
+    throw new EngineOfflineError();
+  }
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `Request failed with status ${res.status}`);
+  }
+  return res.blob();
+}

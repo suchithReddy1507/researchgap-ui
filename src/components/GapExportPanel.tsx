@@ -2,8 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { FileText, GraduationCap, Download, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
-import { exportGap, EngineOfflineError, type Gap, type GapExportFormat } from "@/lib/api";
+import { FileText, GraduationCap, Download, FileDown, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { exportGap, exportGapPdf, EngineOfflineError, type Gap, type GapExportFormat } from "@/lib/api";
 
 const PAPER_FORMATS: { id: GapExportFormat; label: string }[] = [
   { id: "ieee", label: "IEEE" },
@@ -11,14 +11,17 @@ const PAPER_FORMATS: { id: GapExportFormat; label: string }[] = [
   { id: "apa", label: "APA" },
 ];
 
-function download(filename: string, content: string) {
-  const blob = new Blob([content], { type: "text/markdown" });
+function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function download(filename: string, content: string) {
+  downloadBlob(filename, new Blob([content], { type: "text/markdown" }));
 }
 
 export function GapExportPanel({
@@ -37,6 +40,8 @@ export function GapExportPanel({
   const [content, setContent] = useState<string | null>(null);
   const [format, setFormat] = useState<GapExportFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const run = async (fmt: GapExportFormat) => {
     setLoading(true);
@@ -59,10 +64,31 @@ export function GapExportPanel({
     }
   };
 
+  const downloadPdf = async () => {
+    if (!content || !format) return;
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      const blob = await exportGapPdf(jobId, gapIndex, content, format, gapIndex + 1);
+      downloadBlob(`gap-${gapIndex + 1}-${format}.pdf`, blob);
+    } catch (e) {
+      setPdfError(
+        e instanceof EngineOfflineError
+          ? "Could not reach the ResearchGap engine."
+          : e instanceof Error
+            ? e.message
+            : "Could not render the PDF.",
+      );
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   const reset = () => {
     setContent(null);
     setFormat(null);
     setError(null);
+    setPdfError(null);
     setChoosingFormat(false);
   };
 
@@ -159,8 +185,24 @@ export function GapExportPanel({
                 >
                   <Download className="h-3 w-3" /> DOWNLOAD
                 </button>
+                {format !== "report_style" && (
+                  <button
+                    onClick={downloadPdf}
+                    disabled={pdfLoading}
+                    className="flex items-center gap-1.5 rounded-lg bg-[var(--violet)]/15 px-3 py-1.5 font-mono text-[11px] tracking-wider text-[var(--violet)] ring-1 ring-[var(--violet)]/40 hover:bg-[var(--violet)]/25 disabled:opacity-50"
+                  >
+                    {pdfLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
+                    DOWNLOAD PDF
+                  </button>
+                )}
               </div>
             </div>
+            {pdfError && (
+              <p className="mb-4 flex items-start gap-2 rounded-lg bg-[var(--danger)]/10 p-3 text-xs text-[var(--danger)] ring-1 ring-[var(--danger)]/30">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none" />
+                {pdfError}
+              </p>
+            )}
             <article className="report-md font-serif text-[15px] leading-relaxed text-foreground/90">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
             </article>
