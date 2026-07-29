@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Upload, X, ArrowRight, Plus, Network, Lock } from "lucide-react";
+import { Search, Upload, X, ArrowRight, Plus, Network, FileText, AlertTriangle, Loader2 } from "lucide-react";
 import { ParticleField } from "@/components/ParticleField";
 import { useAnalysisStore } from "@/store/analysis";
+import { startIdeaCheck, EngineOfflineError } from "@/lib/api";
 
 export const Route = createFileRoute("/input")({
   component: InputScreen,
@@ -18,6 +19,10 @@ function InputScreen() {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [papers, setPapers] = useState<(typeof PAPER_COUNTS)[number]>(300);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addKeyword = () => {
     const v = draft.trim();
@@ -25,12 +30,39 @@ function InputScreen() {
     setDraft("");
   };
 
-  const canStart = mode === "keyword" && keywords.length > 0;
+  const pickFile = (f: File | null) => {
+    setFile(f);
+    setUploadError(null);
+  };
 
-  const start = () => {
+  const canStart = mode === "keyword" ? keywords.length > 0 : file !== null && !submitting;
+
+  const start = async () => {
     if (!canStart) return;
-    setPendingRequest({ topic: keywords.join(" "), papers });
-    navigate({ to: "/processing" });
+
+    if (mode === "keyword") {
+      setPendingRequest({ mode: "keyword", topic: keywords.join(" "), papers });
+      navigate({ to: "/processing" });
+      return;
+    }
+
+    setUploadError(null);
+    setSubmitting(true);
+    try {
+      const { job_id, idea } = await startIdeaCheck(file!);
+      setPendingRequest({ mode: "upload", jobId: job_id, idea });
+      navigate({ to: "/processing" });
+    } catch (e) {
+      setUploadError(
+        e instanceof EngineOfflineError
+          ? "Could not reach the ResearchGap engine. Make sure the API server is running."
+          : e instanceof Error
+            ? e.message
+            : "Could not process this PDF.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -151,16 +183,62 @@ function InputScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  <div className="relative flex cursor-not-allowed flex-col items-center justify-center rounded-xl border-2 border-dashed border-input p-10 text-center opacity-60">
-                    <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-[var(--amber)]/15 px-3 py-1 font-mono text-[10px] tracking-wider text-[var(--amber)] ring-1 ring-[var(--amber)]/30">
-                      <Lock className="h-3 w-3" /> COMING SOON
-                    </span>
-                    <Upload className="mb-3 h-8 w-8 text-[var(--cyan)] float-slow" />
-                    <p className="font-medium">Drag & drop PDFs here</p>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">
-                      Corpus upload is not wired up yet — use keyword search for now.
+                  <label className="font-mono text-[11px] tracking-widest text-muted-foreground">IDEA CHECK</label>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Upload your own paper or project idea (one PDF). We'll read it, then check where it lands
+                    against live literature — a genuine gap, or already heavily covered.
+                  </p>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+                  />
+
+                  {!file ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (e.dataTransfer.files.length > 0) pickFile(e.dataTransfer.files[0]);
+                      }}
+                      className="relative mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-input p-10 text-center transition-colors hover:border-[var(--cyan)]/50 hover:bg-[var(--cyan)]/5"
+                    >
+                      <Upload className="mb-3 h-8 w-8 text-[var(--cyan)] float-slow" />
+                      <p className="font-medium">Drop your paper here</p>
+                      <p className="mt-1 font-mono text-xs text-muted-foreground">
+                        One PDF · click or drag & drop
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-4 flex items-center justify-between rounded-xl border border-input bg-background/40 p-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FileText className="h-5 w-5 flex-none text-[var(--cyan)]" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{file.name}</p>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {(file.size / 1024).toFixed(0)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => pickFile(null)}
+                        className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-background/60 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <p className="mt-3 flex items-start gap-2 rounded-lg bg-[var(--danger)]/10 p-3 text-xs text-[var(--danger)] ring-1 ring-[var(--danger)]/30">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none" />
+                      {uploadError}
                     </p>
-                  </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -178,7 +256,15 @@ function InputScreen() {
                   : "glass cursor-not-allowed text-muted-foreground opacity-50"
               }`}
             >
-              Start Analysis <ArrowRight className="h-4 w-4" />
+              {submitting ? (
+                <>
+                  Reading PDF… <Loader2 className="h-4 w-4 animate-spin" />
+                </>
+              ) : (
+                <>
+                  Start Analysis <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </motion.button>
           </div>
         </motion.div>

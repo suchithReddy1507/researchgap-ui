@@ -1,11 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { AnalyzeResponse } from "@/lib/api";
+import type { AnalyzeResponse, IdeaMeta } from "@/lib/api";
 
-export interface PendingRequest {
-  topic: string;
-  papers: number;
-}
+export type PendingRequest =
+  | { mode: "keyword"; topic: string; papers: number }
+  | { mode: "upload"; jobId: string; idea: IdeaMeta };
 
 interface AnalysisState {
   pendingRequest: PendingRequest | null;

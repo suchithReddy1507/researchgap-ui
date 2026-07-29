@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Network, FileDown, Radar } from "lucide-react";
+import { Network, FileDown, Radar, Lightbulb, AlertTriangle } from "lucide-react";
 import { KnowledgeMap } from "@/components/KnowledgeMap";
 import { GapCard, GapDetail } from "@/components/GapDetail";
 import { CountUp } from "@/components/CountUp";
 import { useAnalysisStore } from "@/store/analysis";
 import { gapKey } from "@/lib/gap";
-import type { Gap } from "@/lib/api";
+import type { Gap, IdeaLanding } from "@/lib/api";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -60,6 +60,12 @@ function Dashboard() {
           </Link>
         </div>
       </header>
+
+      {result.idea_landing && (
+        <div className="mx-auto max-w-[1600px] px-4 pt-4">
+          <IdeaLandingCard landing={result.idea_landing} />
+        </div>
+      )}
 
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[1fr_400px]">
         {/* Knowledge map */}
@@ -119,6 +125,65 @@ function Dashboard() {
         <GapDetail gap={gap} topics={topics} gaps={gaps} gapId={openGap} onClose={() => setOpenGap(null)} />
       )}
     </div>
+  );
+}
+
+function IdeaLandingCard({ landing }: { landing: IdeaLanding }) {
+  const { idea, closest_topic, closest_gap } = landing;
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glass hud-corners rounded-2xl p-5"
+    >
+      <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-[var(--cyan)]">
+        <Lightbulb className="h-4 w-4" /> IDEA CHECK
+      </div>
+      <h2 className="mt-2 text-lg font-bold">{idea.title || "Your uploaded idea"}</h2>
+      {idea.summary && <p className="mt-1 text-sm text-muted-foreground">{idea.summary}</p>}
+      {idea.core_topic && (
+        <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+          Searched literature for: <span className="text-[var(--cyan)]">"{idea.core_topic}"</span>
+        </p>
+      )}
+      {idea.confidence === "low" && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--amber)]">
+          <AlertTriangle className="h-3 w-3" /> Low-confidence extraction — treat this landing as a rough estimate.
+        </p>
+      )}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-input bg-background/40 p-3">
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground">CLOSEST TOPIC CLUSTER</p>
+          {closest_topic ? (
+            <>
+              <p className="mt-1 text-sm font-medium">{closest_topic.label}</p>
+              <p className="font-mono text-xs text-muted-foreground">overlap score {closest_topic.score}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">No overlap detected</p>
+          )}
+        </div>
+        <div className="rounded-xl border border-input bg-background/40 p-3">
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground">CLOSEST GAP ZONE</p>
+          {closest_gap ? (
+            <>
+              <p className="mt-1 text-sm font-medium">
+                {closest_gap.topic_a} × {closest_gap.topic_b}
+              </p>
+              <p className="font-mono text-xs text-muted-foreground">
+                verdict {closest_gap.verdict} · overlap score {closest_gap.score}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">No overlap detected</p>
+          )}
+        </div>
+      </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        Score reflects keyword overlap — conceptually similar ideas using different terminology may still show a
+        low score.
+      </p>
+    </motion.section>
   );
 }
 

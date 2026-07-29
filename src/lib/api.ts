@@ -26,6 +26,36 @@ export interface Gap {
   confidence: number;
 }
 
+export interface IdeaMeta {
+  title: string;
+  core_topic: string;
+  keywords: string[];
+  related_terms: string[];
+  summary: string;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface TopicScore {
+  label: string;
+  score: number;
+}
+
+export interface GapScore {
+  topic_a: string;
+  topic_b: string;
+  verdict: GapVerdict;
+  prominence: number;
+  score: number;
+}
+
+export interface IdeaLanding {
+  idea: IdeaMeta;
+  closest_topic: TopicScore | null;
+  topic_scores: TopicScore[];
+  closest_gap: GapScore | null;
+  gap_scores: GapScore[];
+}
+
 export interface AnalyzeResponse {
   topic: string;
   papers_count: number;
@@ -36,6 +66,7 @@ export interface AnalyzeResponse {
   rejected_count: number;
   unverified_count: number;
   report: string;
+  idea_landing?: IdeaLanding | null;
 }
 
 export interface Stats {
@@ -52,6 +83,7 @@ export interface Job {
   status: JobStatus;
   topic: string;
   papers: number;
+  idea?: IdeaMeta | null;
   stage: number;
   stage_label: string;
   created_at: number;
@@ -99,4 +131,17 @@ export function startAnalysis(topic: string, papers: number): Promise<{ job_id: 
 
 export function getJob(jobId: string): Promise<Job> {
   return request<Job>(`/jobs/${jobId}`);
+}
+
+/** Extracts a topic/keywords from one uploaded PDF (Claude reads it
+ * directly, server-side) then kicks off the same background pipeline
+ * /analyze uses. This call itself blocks for the extraction step (a few
+ * seconds), then returns a job_id to poll exactly like /analyze does. */
+export function startIdeaCheck(file: File): Promise<{ job_id: string; idea: IdeaMeta }> {
+  const form = new FormData();
+  form.append("file", file);
+  return request<{ job_id: string; idea: IdeaMeta }>("/idea-check", {
+    method: "POST",
+    body: form,
+  });
 }

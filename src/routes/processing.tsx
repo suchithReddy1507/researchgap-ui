@@ -15,7 +15,8 @@ export const Route = createFileRoute("/processing")({
 // so the guard survives any number of remounts of this route, StrictMode's
 // dev double-invoke included.
 let inFlightKey: string | null = null;
-function keyFor(req: PendingRequest | null, attempt: number) {
+type KeywordRequest = Extract<PendingRequest, { mode: "keyword" }>;
+function keyFor(req: KeywordRequest | null, attempt: number) {
   return req ? `${req.topic}::${req.papers}::${attempt}` : null;
 }
 
@@ -68,6 +69,44 @@ function Processing() {
 
   useEffect(() => {
     if (!request) return;
+
+    if (request.mode === "upload") {
+      // The job was already created by /idea-check on /input, before we
+      // ever navigated here — nothing to dispatch, just poll it. A plain
+      // GET is naturally safe to repeat (StrictMode double-invoke, retry,
+      // refresh), so this needs none of the inFlightKey dispatch-guarding
+      // the keyword-mode path below requires.
+      let cancelled = false;
+      const pollUpload = async (jobId: string) => {
+        if (cancelled) return;
+        try {
+          const job = await getJob(jobId);
+          if (cancelled) return;
+          setStage(job.stage);
+          startedAtMsRef.current = job.created_at * 1000;
+          if (job.status === "done" && job.result) {
+            setResult(job.result);
+            navigate({ to: "/dashboard" });
+            return;
+          }
+          if (job.status === "error") {
+            setError(job.error ?? "Analysis failed.");
+            return;
+          }
+          pollTimer.current = setTimeout(() => pollUpload(jobId), POLL_INTERVAL_MS);
+        } catch (e) {
+          if (cancelled) return;
+          if (e instanceof EngineOfflineError) setOffline(true);
+          else setError(e instanceof Error ? e.message : "Analysis failed.");
+        }
+      };
+      pollUpload(request.jobId);
+      return () => {
+        cancelled = true;
+        if (pollTimer.current) clearTimeout(pollTimer.current);
+      };
+    }
+
     const key = keyFor(request, attempt);
     const isResume = attempt === 0 && !!resumeJobId;
 
