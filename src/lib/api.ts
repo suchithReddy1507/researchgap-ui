@@ -161,3 +161,22 @@ export function chatAboutJob(jobId: string, message: string, history: ChatMessag
     body: JSON.stringify({ message, history }),
   });
 }
+
+export type GapExportFormat = "report_style" | "ieee" | "acm" | "apa";
+
+/** Generates fresh content scoped to one gap. "report_style" mirrors the
+ * existing report's per-gap section; ieee/acm/apa produce an academic-paper
+ * draft citing real papers from this job's verification evidence -- fails
+ * clearly (see the 422 case) rather than inventing citations if this job
+ * predates the verification feature. */
+export function exportGap(
+  jobId: string,
+  gapIndex: number,
+  format: GapExportFormat,
+): Promise<{ content: string; format: GapExportFormat }> {
+  return request<{ content: string; format: GapExportFormat }>(`/jobs/${jobId}/gaps/${gapIndex}/export`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ format }),
+  });
+}

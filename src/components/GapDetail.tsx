@@ -159,13 +159,23 @@ export function GapDetail({ gap, topics, gaps, gapId, onClose }: DetailProps) {
   );
 }
 
-export function GapCard({ gap, onOpen }: { gap: Gap; onOpen: () => void }) {
+export function GapCard({
+  gap,
+  onOpen,
+  selected,
+}: {
+  gap: Gap;
+  onOpen: () => void;
+  selected?: boolean;
+}) {
   const rejected = gap.verdict === "REJECTED" || gap.verdict === "UNVERIFIED";
   return (
     <motion.button
       onClick={onOpen}
       whileHover={{ y: -3 }}
-      className={`glass glass-hover w-full rounded-xl p-4 text-left ${rejected ? "opacity-45" : ""}`}
+      className={`glass glass-hover w-full rounded-xl p-4 text-left ${rejected ? "opacity-45" : ""} ${
+        selected ? "ring-2 ring-[var(--cyan)]" : ""
+      }`}
     >
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
@@ -176,7 +186,8 @@ export function GapCard({ gap, onOpen }: { gap: Gap; onOpen: () => void }) {
             {gap.topic_a} × {gap.topic_b}
           </h3>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
-            {gap.bridge_papers} bridge papers · {gap.recent_papers_found} recent hits
+            {gap.bridge_papers} bridge papers · {gap.recent_papers_found} recent hits · prominence{" "}
+            {gap.prominence}
           </p>
         </div>
         <ProminenceGauge score={Math.round(gap.confidence * 100)} size={64} strokeWidth={6} label="CONF" animateOnMount={false} />

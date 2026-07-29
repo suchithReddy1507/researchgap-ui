@@ -5,7 +5,10 @@ import { Network, Download, Check, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { KnowledgeMap } from "@/components/KnowledgeMap";
+import { GapCard } from "@/components/GapDetail";
+import { GapExportPanel } from "@/components/GapExportPanel";
 import { useAnalysisStore } from "@/store/analysis";
+import { gapKey } from "@/lib/gap";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -20,7 +23,9 @@ export const Route = createFileRoute("/report")({
 function Report() {
   const navigate = useNavigate();
   const result = useAnalysisStore((s) => s.result);
+  const jobId = useAnalysisStore((s) => s.jobId);
   const [exported, setExported] = useState(false);
+  const [selectedGapIndex, setSelectedGapIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!result) navigate({ to: "/input" });
@@ -29,6 +34,7 @@ function Report() {
   if (!result) return null;
 
   const { topic, topics, gaps, papers_count, confirmed_count, report } = result;
+  const selectedGap = selectedGapIndex !== null ? gaps[selectedGapIndex] : null;
 
   const doExport = () => {
     const blob = new Blob([report], { type: "text/markdown" });
@@ -89,26 +95,54 @@ function Report() {
           </div>
         </div>
 
-        {/* Real synthesized report markdown */}
-        <div className="glass hud-corners mt-10 overflow-hidden rounded-2xl">
-          <div className="border-b border-border/60 px-4 py-3 font-mono text-[11px] tracking-widest text-muted-foreground">
-            REPORT.MD
-          </div>
-          <article className="report-md px-6 py-6 font-serif text-[15px] leading-relaxed text-foreground/90 md:px-10 md:py-8">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
-          </article>
+        {/* Per-gap cards -- click one to select/highlight it and reveal export options */}
+        <div className="mt-10 flex gap-3 overflow-x-auto pb-2">
+          {gaps.map((g, i) => (
+            <div key={gapKey(g)} className="w-72 flex-none">
+              <GapCard
+                gap={g}
+                selected={selectedGapIndex === i}
+                onOpen={() => setSelectedGapIndex(selectedGapIndex === i ? null : i)}
+              />
+            </div>
+          ))}
         </div>
 
-        <div className="mt-12 flex justify-center">
-          <motion.button
-            onClick={doExport}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-3 rounded-xl bg-[var(--cyan)]/15 px-8 py-4 font-mono text-sm font-medium tracking-wide text-[var(--cyan)] shadow-[0_0_30px_-6px_var(--cyan)] ring-1 ring-[var(--cyan)]/50"
-          >
-            <Download className="h-4 w-4" /> Export Report (report.md)
-          </motion.button>
-        </div>
+        {selectedGap && jobId ? (
+          <GapExportPanel
+            jobId={jobId}
+            gapIndex={selectedGapIndex!}
+            gap={selectedGap}
+            onBack={() => setSelectedGapIndex(null)}
+          />
+        ) : selectedGap ? (
+          <p className="glass hud-corners mt-10 rounded-2xl p-6 text-sm text-muted-foreground">
+            Per-gap export isn't available for this analysis (no job id on record).
+          </p>
+        ) : (
+          <>
+            {/* Real synthesized report markdown */}
+            <div className="glass hud-corners mt-10 overflow-hidden rounded-2xl">
+              <div className="border-b border-border/60 px-4 py-3 font-mono text-[11px] tracking-widest text-muted-foreground">
+                REPORT.MD
+              </div>
+              <article className="report-md px-6 py-6 font-serif text-[15px] leading-relaxed text-foreground/90 md:px-10 md:py-8">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+              </article>
+            </div>
+
+            <div className="mt-12 flex justify-center">
+              <motion.button
+                onClick={doExport}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-3 rounded-xl bg-[var(--cyan)]/15 px-8 py-4 font-mono text-sm font-medium tracking-wide text-[var(--cyan)] shadow-[0_0_30px_-6px_var(--cyan)] ring-1 ring-[var(--cyan)]/50"
+              >
+                <Download className="h-4 w-4" /> Export Report (report.md)
+              </motion.button>
+            </div>
+          </>
+        )}
       </main>
 
       <AnimatePresence>
