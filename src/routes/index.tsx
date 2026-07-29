@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Upload, Database, Layers, Network, Radar, ShieldCheck, FileText, ArrowRight, WifiOff } from "lucide-react";
+import { Search, Database, Layers, Network, Radar, ShieldCheck, FileText, ArrowRight, WifiOff } from "lucide-react";
 import { ParticleField } from "@/components/ParticleField";
 import { CountUp } from "@/components/CountUp";
 import { getStats, type Stats } from "@/lib/api";
@@ -77,9 +77,8 @@ function Landing() {
             maps a knowledge graph, and surfaces AI-validated research opportunities.
           </p>
 
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-            <HudCta to="/input" icon={Search} label="Search by Keyword" primary />
-            <HudCta to="/input" icon={Upload} label="Upload Papers" />
+          <div className="mt-10">
+            <HudCta to="/input" icon={ArrowRight} label="Find Your Gap" primary />
           </div>
 
           <div className="mt-14 flex gap-10 font-mono">
