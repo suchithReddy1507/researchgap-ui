@@ -145,3 +145,19 @@ export function startIdeaCheck(file: File): Promise<{ job_id: string; idea: Idea
     body: form,
   });
 }
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Asks a question about one completed job, grounded only in that job's own
+ * data. Stateless -- the full conversation so far is sent every call, since
+ * nothing is persisted server-side. */
+export function chatAboutJob(jobId: string, message: string, history: ChatMessage[]): Promise<{ answer: string }> {
+  return request<{ answer: string }>(`/jobs/${jobId}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
+  });
+}

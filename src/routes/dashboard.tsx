@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Network, FileDown, Radar, Lightbulb, AlertTriangle } from "lucide-react";
+import { Network, FileDown, Radar, Lightbulb, AlertTriangle, MessageCircle } from "lucide-react";
 import { KnowledgeMap } from "@/components/KnowledgeMap";
 import { GapCard, GapDetail } from "@/components/GapDetail";
+import { ChatPanel } from "@/components/ChatPanel";
 import { CountUp } from "@/components/CountUp";
 import { useAnalysisStore } from "@/store/analysis";
 import { gapKey } from "@/lib/gap";
@@ -18,7 +19,9 @@ const VERDICT_RANK: Record<Gap["verdict"], number> = { CONFIRMED: 0, WEAK: 1, RE
 function Dashboard() {
   const navigate = useNavigate();
   const result = useAnalysisStore((s) => s.result);
+  const jobId = useAnalysisStore((s) => s.jobId);
   const [openGap, setOpenGap] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<"gaps" | "chat">("gaps");
 
   useEffect(() => {
     if (!result) navigate({ to: "/input" });
@@ -96,28 +99,60 @@ function Dashboard() {
         {/* Gap sidebar */}
         <aside className="flex flex-col overflow-hidden" style={{ height: "calc(100vh - 96px)" }}>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Radar className="h-4 w-4 text-[var(--violet)]" /> Detected Gaps
-            </h2>
-            <span className="font-mono text-xs text-muted-foreground">{gaps.length} found</span>
-          </div>
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-            {ranked.length === 0 && (
-              <p className="glass rounded-xl p-4 text-sm text-muted-foreground">
-                No candidate gaps survived detection for this topic.
-              </p>
-            )}
-            {ranked.map((g, i) => (
-              <motion.div
-                key={gapKey(g)}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06 }}
+            <div className="glass flex gap-1 rounded-full p-1">
+              <button
+                onClick={() => setSidebarTab("gaps")}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] tracking-wider transition-colors ${
+                  sidebarTab === "gaps"
+                    ? "bg-[var(--violet)]/15 text-[var(--violet)] ring-1 ring-[var(--violet)]/40"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <GapCard gap={g} onOpen={() => setOpenGap(gapKey(g))} />
-              </motion.div>
-            ))}
+                <Radar className="h-3.5 w-3.5" /> GAPS
+              </button>
+              <button
+                onClick={() => setSidebarTab("chat")}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] tracking-wider transition-colors ${
+                  sidebarTab === "chat"
+                    ? "bg-[var(--cyan)]/15 text-[var(--cyan)] ring-1 ring-[var(--cyan)]/40"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MessageCircle className="h-3.5 w-3.5" /> ASK AI
+              </button>
+            </div>
+            {sidebarTab === "gaps" && (
+              <span className="font-mono text-xs text-muted-foreground">{gaps.length} found</span>
+            )}
           </div>
+
+          {sidebarTab === "gaps" ? (
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {ranked.length === 0 && (
+                <p className="glass rounded-xl p-4 text-sm text-muted-foreground">
+                  No candidate gaps survived detection for this topic.
+                </p>
+              )}
+              {ranked.map((g, i) => (
+                <motion.div
+                  key={gapKey(g)}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                >
+                  <GapCard gap={g} onOpen={() => setOpenGap(gapKey(g))} />
+                </motion.div>
+              ))}
+            </div>
+          ) : jobId ? (
+            <div className="glass hud-corners flex-1 overflow-hidden rounded-2xl p-3">
+              <ChatPanel jobId={jobId} />
+            </div>
+          ) : (
+            <p className="glass rounded-xl p-4 text-sm text-muted-foreground">
+              Chat isn't available for this analysis (no job id on record).
+            </p>
+          )}
         </aside>
       </main>
 

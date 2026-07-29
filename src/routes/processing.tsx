@@ -85,7 +85,7 @@ function Processing() {
           setStage(job.stage);
           startedAtMsRef.current = job.created_at * 1000;
           if (job.status === "done" && job.result) {
-            setResult(job.result);
+            setResult(job.result, jobId);
             navigate({ to: "/dashboard" });
             return;
           }
@@ -144,7 +144,7 @@ function Processing() {
         startedAtMsRef.current = job.created_at * 1000;
         if (job.status === "done" && job.result) {
           release();
-          setResult(job.result);
+          setResult(job.result, jobId);
           navigate({ to: "/dashboard" });
           return;
         }

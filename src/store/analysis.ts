@@ -13,9 +13,12 @@ interface AnalysisState {
    * firing a second, duplicate POST /analyze for the same request. */
   activeJobId: string | null;
   result: AnalyzeResponse | null;
+  /** The job_id that produced `result` — kept alongside it (not cleared)
+   * so /dashboard and /report can call job-scoped endpoints like chat. */
+  jobId: string | null;
   setPendingRequest: (req: PendingRequest) => void;
   setActiveJobId: (jobId: string | null) => void;
-  setResult: (result: AnalyzeResponse) => void;
+  setResult: (result: AnalyzeResponse, jobId: string) => void;
   reset: () => void;
 }
 
@@ -27,10 +30,11 @@ export const useAnalysisStore = create<AnalysisState>()(
       pendingRequest: null,
       activeJobId: null,
       result: null,
+      jobId: null,
       setPendingRequest: (pendingRequest) => set({ pendingRequest, activeJobId: null }),
       setActiveJobId: (activeJobId) => set({ activeJobId }),
-      setResult: (result) => set({ result, pendingRequest: null, activeJobId: null }),
-      reset: () => set({ pendingRequest: null, activeJobId: null, result: null }),
+      setResult: (result, jobId) => set({ result, jobId, pendingRequest: null, activeJobId: null }),
+      reset: () => set({ pendingRequest: null, activeJobId: null, result: null, jobId: null }),
     }),
     {
       name: "researchgap-analysis",
