@@ -45,7 +45,7 @@ function Dashboard() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--cyan)]/40 bg-[var(--cyan)]/10">
               <Network className="h-4 w-4 text-[var(--cyan)]" />
             </div>
-            <span className="font-mono text-sm font-semibold tracking-widest">
+            <span className="font-display text-sm font-semibold tracking-widest">
               RESEARCHGAP<span className="text-glow-cyan">AI</span>
             </span>
           </Link>
@@ -225,7 +225,7 @@ function IdeaLandingCard({ landing }: { landing: IdeaLanding }) {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center">
-      <div className="text-base font-bold text-glow-cyan">
+      <div className="font-display text-base font-bold text-glow-cyan">
         <CountUp to={value} duration={1.2} immediate />
       </div>
       <div className="text-[9px] tracking-widest text-muted-foreground">{label}</div>

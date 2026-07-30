@@ -43,7 +43,7 @@ function Landing() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--cyan)]/40 bg-[var(--cyan)]/10">
             <Network className="h-5 w-5 text-[var(--cyan)]" />
           </div>
-          <span className="font-mono text-sm font-semibold tracking-widest">RESEARCHGAP<span className="text-glow-cyan">AI</span></span>
+          <span className="font-display text-sm font-semibold tracking-widest">RESEARCHGAP<span className="text-glow-cyan">AI</span></span>
         </div>
         <Link
           to="/input"
@@ -93,7 +93,7 @@ function Landing() {
                 { n: stats?.total_confirmed ?? 0, s: "", l: "GAPS CONFIRMED" },
               ].map((stat) => (
                 <div key={stat.l} className="text-center">
-                  <div className="text-2xl font-bold text-glow-cyan">
+                  <div className="font-display text-2xl font-bold text-glow-cyan">
                     <CountUp to={stat.n} suffix={stat.s} />
                   </div>
                   <div className="text-[10px] tracking-widest text-muted-foreground">{stat.l}</div>

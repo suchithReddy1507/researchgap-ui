@@ -61,7 +61,7 @@ function Report() {
         </Link>
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-[var(--cyan)]" />
-          <span className="font-mono text-sm font-semibold tracking-widest">RESEARCHGAP<span className="text-glow-cyan">AI</span></span>
+          <span className="font-display text-sm font-semibold tracking-widest">RESEARCHGAP<span className="text-glow-cyan">AI</span></span>
         </div>
       </header>
 

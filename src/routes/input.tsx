@@ -78,7 +78,7 @@ function InputScreen() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--cyan)]/40 bg-[var(--cyan)]/10">
             <Network className="h-5 w-5 text-[var(--cyan)]" />
           </div>
-          <span className="font-mono text-sm font-semibold tracking-widest">RESEARCHGAP<span className="text-glow-cyan">AI</span></span>
+          <span className="font-display text-sm font-semibold tracking-widest">RESEARCHGAP<span className="text-glow-cyan">AI</span></span>
         </Link>
         <span className="font-mono text-xs tracking-widest text-muted-foreground">STEP 01 · INPUT</span>
       </header>
