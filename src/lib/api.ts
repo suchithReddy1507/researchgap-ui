@@ -66,6 +66,10 @@ export interface AnalyzeResponse {
   rejected_count: number;
   unverified_count: number;
   report: string;
+  /** "llm" when Claude wrote the report, "fallback_*" when synthesis failed
+   * and the plain-text report was used instead. Optional: jobs recorded
+   * before this field existed simply omit it. */
+  report_source?: "llm" | "fallback_no_api_key" | "fallback_llm_unavailable";
   idea_landing?: IdeaLanding | null;
 }
 

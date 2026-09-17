@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Check, Loader2, RotateCcw, WifiOff } from "lucide-react";
 import { ParticleField } from "@/components/ParticleField";
 import { useAnalysisStore, type PendingRequest } from "@/store/analysis";
-import { startAnalysis, getJob, EngineOfflineError } from "@/lib/api";
+import { startAnalysis, getJob, EngineOfflineError, type Job } from "@/lib/api";
 
 export const Route = createFileRoute("/processing")({
   component: Processing,
@@ -31,6 +31,18 @@ const STAGES = [
 
 const POLL_INTERVAL_MS = 3000;
 
+// A crashed engine is caught immediately (fetch fails -> EngineOfflineError)
+// and a job orphaned by a restart is caught server-side by reap_orphaned_jobs.
+// This is the last-resort backstop for the remaining case: engine alive and
+// answering, but the worker thread wedged, so updated_at simply stops moving.
+// Deliberately well past the advertised 1-6 min run time -- the engine only
+// touches updated_at on stage transitions, and stage 5 can legitimately sit
+// quiet for minutes behind a rate-limited API, so a tighter bound would risk
+// showing a false failure mid-demo.
+const STALL_TIMEOUT_MS = 480_000;
+const STALL_MESSAGE =
+  "The engine stopped making progress for 8 minutes and is likely wedged. Restart it and run this again.";
+
 function formatElapsed(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -54,6 +66,19 @@ function Processing() {
   const [elapsed, setElapsed] = useState(0);
   const startedAtMsRef = useRef<number>(Date.now());
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stallRef = useRef<{ updatedAt: number; sinceMs: number } | null>(null);
+
+  // Stalled == the job's own updated_at has not moved for STALL_TIMEOUT_MS.
+  // Wall-clock elapsed is the wrong signal: a long run is not a broken one.
+  const isStalled = (job: Job) => {
+    const now = Date.now();
+    const seen = stallRef.current;
+    if (!seen || seen.updatedAt !== job.updated_at) {
+      stallRef.current = { updatedAt: job.updated_at, sinceMs: now };
+      return false;
+    }
+    return now - seen.sinceMs > STALL_TIMEOUT_MS;
+  };
 
   useEffect(() => {
     if (!request) {
@@ -69,6 +94,7 @@ function Processing() {
 
   useEffect(() => {
     if (!request) return;
+    stallRef.current = null;
 
     if (request.mode === "upload") {
       // The job was already created by /idea-check on /input, before we
@@ -91,6 +117,10 @@ function Processing() {
           }
           if (job.status === "error") {
             setError(job.error ?? "Analysis failed.");
+            return;
+          }
+          if (isStalled(job)) {
+            setError(STALL_MESSAGE);
             return;
           }
           pollTimer.current = setTimeout(() => pollUpload(jobId), POLL_INTERVAL_MS);
@@ -151,6 +181,11 @@ function Processing() {
         if (job.status === "error") {
           release();
           setError(job.error ?? "Analysis failed.");
+          return;
+        }
+        if (isStalled(job)) {
+          release();
+          setError(STALL_MESSAGE);
           return;
         }
         pollTimer.current = setTimeout(() => poll(jobId), POLL_INTERVAL_MS);
