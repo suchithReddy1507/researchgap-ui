@@ -72,6 +72,14 @@
   --violet: oklch(0.68 0.2 295);
   --amber: oklch(0.82 0.16 75);
   --danger: oklch(0.65 0.22 22);
+
+  /* Fraunces ships with wonky/soft alternates and decorative OpenType
+     features on by default -- pin these to plain, clean letterforms.
+     opsz is deliberately left unset so the browser keeps auto-scaling
+     optical size to each element's rendered font-size. */
+  --font-display-variation: "SOFT" 0, "WONK" 0;
+  --font-display-features:
+    "ss01" 0, "ss02" 0, "ss03" 0, "ss04" 0, "ss05" 0, "salt" 0, "swsh" 0, "dlig" 0, "hist" 0, "calt" 0;
 }
 
 @layer base {
@@ -90,6 +98,8 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display);
+    font-variation-settings: var(--font-display-variation);
+    font-feature-settings: var(--font-display-features);
   }
 }
 
@@ -99,6 +109,8 @@
   }
   .font-display {
     font-family: var(--font-display);
+    font-variation-settings: var(--font-display-variation);
+    font-feature-settings: var(--font-display-features);
   }
   .font-serif {
     font-family: var(--font-serif);
@@ -109,6 +121,8 @@
 .report-md h2,
 .report-md h3 {
   font-family: var(--font-display);
+  font-variation-settings: var(--font-display-variation);
+  font-feature-settings: var(--font-display-features);
   font-weight: 700;
   color: var(--foreground);
   margin-top: 1.75em;
